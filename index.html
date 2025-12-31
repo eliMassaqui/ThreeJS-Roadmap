@@ -1,12 +1,621 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThreeJs Mais Vite</title>
+    <title>Explorador Interativo Three.js: O Guia Completo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Stone & Creative Orange -->
+    <!-- Background: Stone-100 (#F5F5F4) for a calm, paper-like feel. -->
+    <!-- Text: Stone-800 (#292524) for high readability. -->
+    <!-- Accent: Orange-600 (#EA580C) to represent creativity and WebGL energy. -->
+    <!-- Secondary: Blue-600 (#2563EB) for technical data points. -->
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #F5F5F4;
+            color: #292524;
+        }
+
+        /* Custom Chart Container Styles as per Requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Mobile base height */
+            max-height: 400px;
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px; /* Tablet/Desktop height */
+            }
+        }
+
+        /* Custom Scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #E7E5E4; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #A8A29E; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #78716C; 
+        }
+
+        /* Interactive Element Styles */
+        .interactive-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .interactive-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #EA580C;
+        }
+        .active-card {
+            border-color: #EA580C;
+            background-color: #FFF7ED; /* Orange-50 */
+        }
+
+        /* CSS 3D Cube Demo Styles */
+        .scene-3d {
+            width: 200px;
+            height: 200px;
+            perspective: 600px;
+            margin: 0 auto;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: translateZ(-100px);
+            transition: transform 0.1s;
+        }
+        .cube__face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border: 2px solid black;
+            line-height: 200px;
+            font-size: 40px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            opacity: 0.8;
+        }
+        .cube__face--front  { background: hsla(  0, 100%, 50%, 0.7); transform: rotateY(  0deg) translateZ(100px); }
+        .cube__face--right  { background: hsla( 60, 100%, 50%, 0.7); transform: rotateY( 90deg) translateZ(100px); }
+        .cube__face--back   { background: hsla(120, 100%, 50%, 0.7); transform: rotateY(180deg) translateZ(100px); }
+        .cube__face--left   { background: hsla(180, 100%, 50%, 0.7); transform: rotateY(-90deg) translateZ(100px); }
+        .cube__face--top    { background: hsla(240, 100%, 50%, 0.7); transform: rotateX( 90deg) translateZ(100px); }
+        .cube__face--bottom { background: hsla(300, 100%, 50%, 0.7); transform: rotateX(-90deg) translateZ(100px); }
+
+        /* Animation Keyframes */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+    </style>
+
+    <!-- Application Structure Plan:
+         Designed as a "Interactive Learning Dashboard". 
+         1. Header: Quick context and title.
+         2. Navigation: Tabs to switch between "Visão Geral" (Overview), "Arquitetura" (Core Concepts), "Ecossistema" (Features), and "Playground" (Interaction).
+         3. Content Areas:
+            - Visão Geral: High-level stats and definition. Goal: Introduce the library's impact using charts.
+            - Arquitetura: An interactive flow diagram explained via clicking. Goal: Breakdown technical complexity into digestible steps.
+            - Ecossistema: Comparative data on Geometries/Materials. Goal: Compare options using Radar charts.
+            - Playground: A simulated 3D environment using CSS Transforms (lighter than loading full Three.js for a simple demo, but demonstrating the concept of XYZ manipulation). Goal: Engage user with direct manipulation.
+    -->
 </head>
-<body>
-    <canvas class="webgl"></canvas>
-    <script type="module" src="./script.js"></script>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header Section -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🧊</span>
+                    <h1 class="text-xl font-bold text-stone-900 tracking-tight">Explorador <span class="text-orange-600">Three.js</span></h1>
+                </div>
+                <nav class="flex space-x-4">
+                    <!-- Nav buttons generated by JS -->
+                    <div id="nav-container" class="flex space-x-2"></div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Dynamic Content Container -->
+        <div id="content-area" class="w-full">
+            <!-- Content injected via JS -->
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-100 border-t border-stone-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-stone-500">
+                Gerado a partir da base de conhecimento Three.js &bull; Focado em Aprendizado Interativo &bull; 2024
+            </p>
+        </div>
+    </footer>
+
+    <!-- Visualization & Content Choices:
+         1. Popularity Chart (Bar): Shows Three.js dominance vs other WebGL libs. Goal: Inform about ecosystem status.
+         2. Architecture Flow (Interactive Grid): Clickable cards for Scene, Camera, Renderer. Goal: Explain the data flow logically.
+         3. Geometry/Material Radar: Compares "Complexity" vs "Performance" vs "Flexibility". Goal: Compare technical trade-offs.
+         4. CSS 3D Playground: Simulates the "Scene Graph" manipulation. Goal: Change/Interact to understand 3D coordinate systems without WebGL overhead in this specific view.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+
+    <script>
+        // --- Data Store ---
+        const appData = {
+            navItems: [
+                { id: 'dashboard', label: 'Visão Geral' },
+                { id: 'architecture', label: 'Arquitetura' },
+                { id: 'ecosystem', label: 'Ecossistema' },
+                { id: 'playground', label: 'Laboratório 3D' }
+            ],
+            dashboard: {
+                intro: {
+                    title: "O Padrão para 3D na Web",
+                    text: "Three.js é uma biblioteca JavaScript que simplifica a criação de cenas 3D complexas no navegador. Ela abstrai a complexidade do WebGL puro, oferecendo um sistema intuitivo de Cenas, Câmeras e Malhas (Meshes).",
+                    stats: [
+                        { label: "Downloads Semanais", value: "1M+", icon: "📉" },
+                        { label: "Estrelas GitHub", value: "95k+", icon: "⭐" },
+                        { label: "Tamanho (Min)", value: "~600KB", icon: "📦" }
+                    ]
+                },
+                chartData: {
+                    labels: ['Three.js', 'Babylon.js', 'A-Frame', 'PlayCanvas', 'WebGL Puro'],
+                    datasets: [{
+                        label: 'Índice de Adoção (Estimado)',
+                        data: [85, 45, 30, 25, 10],
+                        backgroundColor: [
+                            'rgba(234, 88, 12, 0.8)', // Orange (Three.js)
+                            'rgba(168, 162, 158, 0.5)',
+                            'rgba(168, 162, 158, 0.5)',
+                            'rgba(168, 162, 158, 0.5)',
+                            'rgba(168, 162, 158, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(234, 88, 12, 1)',
+                            'rgba(168, 162, 158, 1)',
+                            'rgba(168, 162, 158, 1)',
+                            'rgba(168, 162, 158, 1)',
+                            'rgba(168, 162, 158, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                }
+            },
+            architecture: {
+                title: "O Ciclo de Renderização",
+                description: "Entenda como o Three.js transforma código em pixels. O ciclo básico envolve três pilares principais que trabalham juntos a cada frame.",
+                steps: [
+                    {
+                        id: 'scene',
+                        icon: '🎬',
+                        title: 'Scene (Cena)',
+                        detail: 'O "universo" onde tudo acontece. A Cena contém todos os objetos, luzes e câmeras. É um grafo de objetos hierárquico.',
+                        code: 'const scene = new THREE.Scene();'
+                    },
+                    {
+                        id: 'camera',
+                        icon: '🎥',
+                        title: 'Camera (Câmera)',
+                        detail: 'Os "olhos" da aplicação. Define o campo de visão (FOV), a proporção de aspecto e os planos de corte. A mais comum é a PerspectiveCamera.',
+                        code: 'const camera = new THREE.PerspectiveCamera(75, w/h, 0.1, 1000);'
+                    },
+                    {
+                        id: 'renderer',
+                        icon: '🖼️',
+                        title: 'Renderer (Renderizador)',
+                        detail: 'O "motor" que pega a Cena e a Câmera e desenha a imagem no elemento <canvas> do HTML. Usa a GPU via WebGL.',
+                        code: 'renderer.render(scene, camera);'
+                    },
+                    {
+                        id: 'mesh',
+                        icon: '🧊',
+                        title: 'Mesh (Malha)',
+                        detail: 'Um objeto visível. É a combinação de uma Geometria (forma) e um Material (aparência).',
+                        code: 'const mesh = new THREE.Mesh(geometry, material);'
+                    }
+                ]
+            },
+            ecosystem: {
+                title: "Geometrias & Materiais",
+                description: "Escolher o tipo certo de geometria e material é crucial para equilibrar performance e fidelidade visual.",
+                radarData: {
+                    labels: ['Custo de Performance', 'Realismo', 'Complexidade de Uso', 'Flexibilidade', 'Suporte a Luz'],
+                    datasets: [
+                        {
+                            label: 'MeshStandardMaterial',
+                            data: [70, 90, 60, 80, 100],
+                            fill: true,
+                            backgroundColor: 'rgba(234, 88, 12, 0.2)',
+                            borderColor: 'rgb(234, 88, 12)',
+                            pointBackgroundColor: 'rgb(234, 88, 12)',
+                        },
+                        {
+                            label: 'MeshBasicMaterial',
+                            data: [10, 10, 20, 40, 0],
+                            fill: true,
+                            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                            borderColor: 'rgb(37, 99, 235)',
+                            pointBackgroundColor: 'rgb(37, 99, 235)',
+                        }
+                    ]
+                }
+            }
+        };
+
+        // --- State Management ---
+        let currentState = {
+            activeTab: 'dashboard',
+            cubeRotation: { x: -30, y: 45 },
+            selectedArchStep: null
+        };
+
+        // --- Core Functions ---
+
+        function init() {
+            renderNav();
+            renderContent();
+            window.addEventListener('resize', handleResize);
+        }
+
+        function handleResize() {
+            // Re-render chart if needed, though Chart.js is responsive usually
+        }
+
+        function renderNav() {
+            const container = document.getElementById('nav-container');
+            container.innerHTML = appData.navItems.map(item => `
+                <button 
+                    onclick="switchTab('${item.id}')"
+                    class="px-3 py-2 rounded-md text-sm font-medium transition-colors ${currentState.activeTab === item.id 
+                        ? 'bg-orange-100 text-orange-700' 
+                        : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'}"
+                >
+                    ${item.label}
+                </button>
+            `).join('');
+        }
+
+        function switchTab(tabId) {
+            currentState.activeTab = tabId;
+            renderNav();
+            renderContent();
+        }
+
+        function renderContent() {
+            const container = document.getElementById('content-area');
+            container.innerHTML = ''; // Clear current
+
+            switch (currentState.activeTab) {
+                case 'dashboard':
+                    renderDashboard(container);
+                    break;
+                case 'architecture':
+                    renderArchitecture(container);
+                    break;
+                case 'ecosystem':
+                    renderEcosystem(container);
+                    break;
+                case 'playground':
+                    renderPlayground(container);
+                    break;
+            }
+        }
+
+        // --- Section Renderers ---
+
+        function renderDashboard(container) {
+            const { intro, chartData } = appData.dashboard;
+            
+            const html = `
+                <div class="space-y-8 animate-fade-in">
+                    <!-- Intro Section -->
+                    <div class="bg-white rounded-lg p-6 shadow-sm border border-stone-200">
+                        <h2 class="text-2xl font-bold text-stone-800 mb-4">${intro.title}</h2>
+                        <p class="text-stone-600 leading-relaxed mb-6">${intro.text}</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            ${intro.stats.map(stat => `
+                                <div class="bg-stone-50 p-4 rounded-lg flex items-center justify-between border border-stone-100">
+                                    <div>
+                                        <p class="text-sm text-stone-500">${stat.label}</p>
+                                        <p class="text-2xl font-bold text-stone-900">${stat.value}</p>
+                                    </div>
+                                    <span class="text-3xl">${stat.icon}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white rounded-lg p-6 shadow-sm border border-stone-200">
+                            <h3 class="text-lg font-semibold text-stone-800 mb-4">Dominância no Ecossistema</h3>
+                            <p class="text-sm text-stone-500 mb-4">Comparativo estimado de uso em projetos web.</p>
+                            <div class="chart-container">
+                                <canvas id="popularityChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-6 shadow-sm border border-stone-200 flex flex-col justify-center">
+                            <h3 class="text-lg font-semibold text-stone-800 mb-2">Por que Three.js?</h3>
+                            <ul class="space-y-3">
+                                <li class="flex items-start">
+                                    <span class="text-orange-600 mr-2">✔</span>
+                                    <span class="text-stone-600 text-sm">Abstração do WebGL complexo.</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="text-orange-600 mr-2">✔</span>
+                                    <span class="text-stone-600 text-sm">Comunidade massiva e muitos exemplos.</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="text-orange-600 mr-2">✔</span>
+                                    <span class="text-stone-600 text-sm">Suporte a carregamento de modelos (GLTF, OBJ).</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <span class="text-orange-600 mr-2">✔</span>
+                                    <span class="text-stone-600 text-sm">Shaders personalizados (GLSL) quando necessário.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+
+            // Initialize Chart
+            const ctx = document.getElementById('popularityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f5f5f4' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderArchitecture(container) {
+            const { title, description, steps } = appData.architecture;
+            
+            const html = `
+                <div class="animate-fade-in space-y-6">
+                    <div class="bg-white p-6 rounded-lg border border-stone-200">
+                        <h2 class="text-2xl font-bold text-stone-800 mb-2">${title}</h2>
+                        <p class="text-stone-600 mb-6">${description}</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Diagram Area -->
+                            <div class="grid grid-cols-1 gap-4">
+                                ${steps.map(step => `
+                                    <div 
+                                        onclick="selectArchStep('${step.id}')"
+                                        class="interactive-card bg-stone-50 p-4 rounded-lg border-2 ${currentState.selectedArchStep === step.id ? 'active-card' : 'border-stone-100'} flex items-center justify-between"
+                                    >
+                                        <div class="flex items-center">
+                                            <span class="text-2xl mr-3">${step.icon}</span>
+                                            <span class="font-semibold text-stone-700">${step.title}</span>
+                                        </div>
+                                        <span class="text-stone-400">➜</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <!-- Detail Area -->
+                            <div class="bg-stone-900 rounded-lg p-6 text-white flex flex-col justify-center min-h-[300px]">
+                                <div id="arch-detail-content">
+                                    ${currentState.selectedArchStep 
+                                        ? getArchDetailHtml(steps.find(s => s.id === currentState.selectedArchStep)) 
+                                        : '<div class="text-center text-stone-500"><p class="mb-2 text-4xl">👆</p><p>Clique em um componente à esquerda para ver os detalhes técnicos.</p></div>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function selectArchStep(id) {
+            currentState.selectedArchStep = id;
+            renderContent(); // Re-render to update UI state
+        }
+
+        function getArchDetailHtml(step) {
+            return `
+                <div class="animate-fade-in">
+                    <h3 class="text-xl font-bold text-orange-500 mb-2 flex items-center">
+                        <span class="mr-2">${step.icon}</span> ${step.title}
+                    </h3>
+                    <p class="text-stone-300 mb-4 leading-relaxed">${step.detail}</p>
+                    <div class="bg-black p-3 rounded border border-stone-700 font-mono text-sm text-green-400">
+                        ${step.code}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEcosystem(container) {
+            const { title, description, radarData } = appData.ecosystem;
+            
+            const html = `
+                <div class="animate-fade-in space-y-6">
+                    <div class="bg-white p-6 rounded-lg border border-stone-200">
+                        <h2 class="text-2xl font-bold text-stone-800 mb-2">${title}</h2>
+                        <p class="text-stone-600 mb-6">${description}</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                            <div class="chart-container">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="p-4 border-l-4 border-orange-600 bg-orange-50">
+                                    <h4 class="font-bold text-orange-800">MeshStandardMaterial</h4>
+                                    <p class="text-sm text-orange-700">O padrão da indústria. Usa PBR (Physically Based Rendering) para reagir à luz de forma realista. Mais custoso, mas visualmente superior.</p>
+                                </div>
+                                <div class="p-4 border-l-4 border-blue-600 bg-blue-50">
+                                    <h4 class="font-bold text-blue-800">MeshBasicMaterial</h4>
+                                    <p class="text-sm text-blue-700">Não reage à luz. Cor plana. Extremamente performático, ideal para UI, wireframes ou cenas estilizadas.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: radarData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e5e7eb' },
+                            grid: { color: '#e5e7eb' },
+                            pointLabels: {
+                                font: { size: 12 }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPlayground(container) {
+            const html = `
+                <div class="animate-fade-in space-y-6">
+                    <div class="bg-white p-6 rounded-lg border border-stone-200">
+                        <div class="flex flex-col md:flex-row justify-between items-start mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-stone-800 mb-2">Laboratório de Transformação 3D</h2>
+                                <p class="text-stone-600">Simulação interativa dos conceitos de rotação espacial (X, Y, Z) usados pelo Three.js.</p>
+                            </div>
+                            <div class="mt-4 md:mt-0 bg-stone-100 px-4 py-2 rounded text-sm text-stone-600">
+                                <span class="font-bold">Dica:</span> Use os sliders para manipular a malha.
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <!-- Controls -->
+                            <div class="bg-stone-50 p-6 rounded-lg border border-stone-100 space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-stone-700 mb-2">Rotação X (Pitch)</label>
+                                    <input type="range" min="-180" max="180" value="${currentState.cubeRotation.x}" 
+                                        oninput="updateCube(this.value, 'x')" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600">
+                                    <div class="flex justify-between text-xs text-stone-500 mt-1">
+                                        <span>-180°</span>
+                                        <span id="val-x">${currentState.cubeRotation.x}°</span>
+                                        <span>180°</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-stone-700 mb-2">Rotação Y (Yaw)</label>
+                                    <input type="range" min="-180" max="180" value="${currentState.cubeRotation.y}" 
+                                        oninput="updateCube(this.value, 'y')" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-600">
+                                    <div class="flex justify-between text-xs text-stone-500 mt-1">
+                                        <span>-180°</span>
+                                        <span id="val-y">${currentState.cubeRotation.y}°</span>
+                                        <span>180°</span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-4 border-t border-stone-200">
+                                    <p class="text-xs text-stone-500">
+                                        No Three.js, isso seria equivalente a:<br>
+                                        <code class="text-orange-600">mesh.rotation.x = value;</code><br>
+                                        <code class="text-orange-600">mesh.rotation.y = value;</code>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Visualization -->
+                            <div class="md:col-span-2 bg-stone-900 rounded-lg flex items-center justify-center min-h-[400px] overflow-hidden relative">
+                                <!-- Grid Background -->
+                                <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px); background-size: 20px 20px;"></div>
+                                
+                                <div class="scene-3d">
+                                    <div id="demo-cube" class="cube">
+                                        <div class="cube__face cube__face--front">front</div>
+                                        <div class="cube__face cube__face--back">back</div>
+                                        <div class="cube__face cube__face--right">right</div>
+                                        <div class="cube__face cube__face--left">left</div>
+                                        <div class="cube__face cube__face--top">top</div>
+                                        <div class="cube__face cube__face--bottom">bottom</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            // Apply initial rotation
+            updateCube(currentState.cubeRotation.x, 'x', false);
+            updateCube(currentState.cubeRotation.y, 'y', false);
+        }
+
+        function updateCube(val, axis, updateState = true) {
+            if (updateState) {
+                currentState.cubeRotation[axis] = val;
+                // Update label
+                const label = document.getElementById(`val-${axis}`);
+                if (label) label.innerText = `${val}°`;
+            }
+
+            const cube = document.getElementById('demo-cube');
+            if (cube) {
+                cube.style.transform = `translateZ(-100px) rotateX(${currentState.cubeRotation.x}deg) rotateY(${currentState.cubeRotation.y}deg)`;
+            }
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
 </body>
 </html>
